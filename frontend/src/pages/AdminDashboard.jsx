@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from "react-router-dom";
 import {
     Box,
     Container,
@@ -20,7 +21,10 @@ import NavBar from '../components/NavBar';
 
 const AdminDashboard = () => {
     const [loading, setLoading] = useState(false);
-
+  const navigate = useNavigate();
+   const handleNavigation = () => {
+   navigate("/admin/user")
+  };
     useEffect(() => {
         // Optionally preload admin stats here
     }, []);
@@ -50,7 +54,7 @@ const AdminDashboard = () => {
                                     </Box>
                                 </Stack>
                                 <Divider sx={{ my: 2 }} />
-                                <Button variant="contained" size="small" disabled={loading}>
+                                <Button variant="contained" size="small" onClick={handleNavigation} disabled={loading}>
                                     Ouvrir la gestion des utilisateurs
                                 </Button>
                             </CardContent>

@@ -11,6 +11,7 @@ import EmployeeDashboard from "./pages/EmployeeDashboard";
 import CoordinatorDashboard from "./pages/CoordinatorDashboard";
 import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminUsers from "./pages/AdminUsers";
 
 function App() {
   const [message, setMessage] = useState("");
@@ -48,6 +49,16 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/admin/user"
+          element={
+            <ProtectedRoute requiredRoles={["ADMIN"]}>
+              <AdminUsers />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/hr/dashboard"
           element={
@@ -56,6 +67,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/employee/dashboard"
           element={
@@ -64,6 +76,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/coordinator/dashboard"
           element={
@@ -72,6 +85,9 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* Route de fallback pour les routes non trouvées */}
+
       </Routes>
     </Router>
   );

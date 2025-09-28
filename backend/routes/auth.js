@@ -9,7 +9,7 @@ const router = express.Router();
 // Validation middleware pour la connexion
 const validateLogin = [
     body('email').isEmail().normalizeEmail().withMessage('Email invalide'),
-    body('password').isLength({ min: 6 }).withMessage('Le mot de passe doit contenir au moins 6 caractères')
+    body('password').isLength({ min: 4 }).withMessage('Le mot de passe doit contenir au moins 6 caractères')
 ];
 
 // Route de connexion
@@ -17,6 +17,7 @@ router.post('/login', validateLogin, async (req, res) => {
     try {
         // Vérifier les erreurs de validation
         const errors = validationResult(req);
+        console.log(errors);
         if (!errors.isEmpty()) {
             return res.status(400).json({
                 success: false,
