@@ -1,0 +1,80 @@
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import './index.css';
+import { AuthProvider } from './contexts/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import AdminDashboard from './pages/AdminDashboard';
+import EmployeeDashboard from './pages/EmployeeDashboard';
+import CoordinatorDashboard from './pages/CoordinatorDashboard';
+import HRDashboard from './pages/HRDashboard';
+import EmployeeRequests from './pages/EmployeeRequests';
+import CoordinatorApprovals from './pages/CoordinatorApprovals';
+import HRBalances from './pages/HRBalances';
+import AdminUsers from './pages/AdminUsers';
+
+createRoot(document.getElementById('root')).render(
+  <StrictMode>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Page de connexion */}
+          <Route path="/" element={<Login />} />
+
+          {/* Routes protégées */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/employee/dashboard" element={
+            <ProtectedRoute requiredRoles={['EMPLOYEE']}>
+              <EmployeeDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/employee/requests" element={
+            <ProtectedRoute requiredRoles={['EMPLOYEE']}>
+              <EmployeeRequests />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/coordinator/dashboard" element={
+            <ProtectedRoute requiredRoles={['COORDINATOR']}>
+              <CoordinatorDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/coordinator/approvals" element={
+            <ProtectedRoute requiredRoles={['COORDINATOR']}>
+              <CoordinatorApprovals />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/hr/dashboard" element={
+            <ProtectedRoute requiredRoles={['HR']}>
+              <HRDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/hr/balances" element={
+            <ProtectedRoute requiredRoles={['HR']}>
+              <HRBalances />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/admin/dashboard" element={
+            <ProtectedRoute requiredRoles={['ADMIN']}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/users" element={
+            <ProtectedRoute requiredRoles={['ADMIN']}>
+              <AdminUsers />
+            </ProtectedRoute>
+          } />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
+  </StrictMode>,
+);
