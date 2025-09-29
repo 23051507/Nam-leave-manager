@@ -14,14 +14,15 @@ import EmployeeRequests from "./pages/EmployeeRequests";
 import CoordinatorApprovals from "./pages/CoordinatorApprovals";
 import HRBalances from "./pages/HRBalances";
 import AdminUsers from "./pages/AdminUsers";
+import LeaveRequestForm from "./pages/LeaveRequestForm";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* Page de connexion */}
-          <Route path="/" element={<Login />} />
+    <BrowserRouter>
+      <Routes>
+        {/* Page de connexion */}
+        <Route path="/" element={<Login />} />
 
           {/* Routes protégées */}
           <Route
@@ -41,11 +42,11 @@ createRoot(document.getElementById("root")).render(
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/employee/requests"
+           <Route
+            path="/employee/new"
             element={
               <ProtectedRoute requiredRoles={["EMPLOYEE"]}>
-                <EmployeeRequests />
+                <LeaveRequestForm />
               </ProtectedRoute>
             }
           />
@@ -110,8 +111,8 @@ createRoot(document.getElementById("root")).render(
               </div>
             }
           />
-        </Routes>
-      </BrowserRouter>
+      </Routes>
+    </BrowserRouter>
     </AuthProvider>
   </StrictMode>
 );

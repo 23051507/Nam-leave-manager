@@ -197,24 +197,6 @@ export default function Login() {
             )}
           </Button>
         </form>
-
-        <Box sx={{ mt: 3, p: 2, backgroundColor: "#f8f9fa", borderRadius: 2 }}>
-          <Typography variant="body2" color="text.secondary" gutterBottom>
-            <strong>Comptes de test :</strong>
-          </Typography>
-          <Typography variant="caption" display="block" color="text.secondary">
-            Admin: admin@nams.com / admin123
-          </Typography>
-          <Typography variant="caption" display="block" color="text.secondary">
-            RH: rh@nams.com / rh123
-          </Typography>
-          <Typography variant="caption" display="block" color="text.secondary">
-            Coordinateur: coordo@nams.com / coordo123
-          </Typography>
-          <Typography variant="caption" display="block" color="text.secondary">
-            Employé: employe@nams.com / employe123
-          </Typography>
-        </Box>
       </Paper>
     </Box>
   );

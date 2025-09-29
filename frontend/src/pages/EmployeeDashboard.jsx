@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+ import React, { useEffect, useState } from 'react';
 import {
     Box,
     Container,
@@ -18,8 +18,10 @@ import { CalendarMonth, AddCircle } from '@mui/icons-material';
 import NavBar from '../components/NavBar';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const EmployeeDashboard = () => {
+    const Navigate = useNavigate();
     const { user } = useAuth();
     const [loading, setLoading] = useState(true);
     const [balances, setBalances] = useState([]);
@@ -113,8 +115,8 @@ const EmployeeDashboard = () => {
                                 ) : (
                                     <Alert severity="info">Aucune demande récente</Alert>
                                 )}
-                                <Button variant="contained" startIcon={<AddCircle />} sx={{ mt: 2 }} disabled>
-                                    Nouvelle demande (UI à venir)
+                                <Button variant="contained" startIcon={<AddCircle />} sx={{ mt: 2 }} onClick={() => Navigate('/employee/new')}>
+                                    Nouvelle demande
                                 </Button>
                             </CardContent>
                         </Card>
@@ -126,6 +128,7 @@ const EmployeeDashboard = () => {
 };
 
 export default EmployeeDashboard;
+
 
 
 

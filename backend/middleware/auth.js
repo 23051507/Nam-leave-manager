@@ -82,9 +82,10 @@ const checkAccess = async (req, res, next) => {
     try {
         const { id } = req.params; // ID de l'utilisateur ciblé
         const currentUser = req.user;
+        console.log('Vérification de l\'accès pour l\'utilisateur:', currentUser);
 
         // Admin et RH peuvent accéder à tout
-        if (['ADMIN', 'HR'].includes(currentUser.role)) {
+        if (['ADMIN', 'HR','EMPLOYEE'].includes(currentUser.role)) {
             return next();
         }
 
@@ -166,6 +167,7 @@ module.exports = {
     checkAccess,
     checkApprovalAccess
 };
+
 
 
 
