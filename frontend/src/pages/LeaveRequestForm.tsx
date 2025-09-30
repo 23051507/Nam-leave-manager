@@ -1,210 +1,342 @@
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Textarea } from '../components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Badge } from '../components/ui/badge';
-import { AlertCircle, Calendar, Clock } from 'lucide-react';
-import { useAppStore } from '@/lib/store';
+import React, { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  Box,
+  Container,
+  Paper,
+  Typography,
+  TextField,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Button,
+  CircularProgress,
+  Alert,
+  Fade,
+  Card,
+  CardContent,
+  Stack,
+} from '@mui/material';
+import {
+  Person,
+  Email,
+  CalendarToday,
+  Note,
+  CheckCircleOutline,
+  ErrorOutline,
+} from '@mui/icons-material';
+import { apiClient } from '../api/axios';
+import { useNavigate } from 'react-router-dom';
 
-export default function LeaveRequestForm() {
-  const { currentUser, leaveTypes, leaveBalances, submitLeaveRequest } = useAppStore();
+type LeaveRequestData = {
+  employeeName: string;
+  email: string;
+  leaveType: string;
+  startDate: string;
+  endDate: string;
+  reason: string;
+  supervisor: string;
+  days?: number;
+  status?: string;
+  submittedAt?: string;
+};
+
+const submitLeaveRequest = async (requestData: LeaveRequestData) => {
+  const response = await apiClient.post('/leave-requests', {'leave_type_id':1,
+    'start_date':requestData.startDate,
+    'end_date': requestData.endDate,
+    'justification':requestData.reason
+  });
+  return response;
+};
+
+function LeaveRequestForm() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    leaveTypeId: '',
+    employeeName: '',
+    email: '',
+    leaveType: '',
     startDate: '',
     endDate: '',
-    reason: ''
+    reason: '',
+    supervisor: ''
+  });
+  
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showSuccess, setShowSuccess] = useState(false);
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: submitLeaveRequest,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leaveRequests'] });
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+      navigate(-1);
+      }, 3000);
+    },
+    onError: () => {
+      setErrors({ submit: 'Erreur lors de la soumission. Veuillez réessayer.' });
+    },
   });
 
-  const userBalances = leaveBalances.filter(b => b.userId === currentUser.id);
+  const leaveTypes = [
+    'Congé annuel',
+    'Congé maladie',
+    'Congé sans solde',
+    'Congé maternité/paternité',
+    'Congé formation',
+    'RTT',
+    'Autre'
+  ];
 
-  const calculateWorkingDays = (start: string, end: string): number => {
-    if (!start || !end) return 0;
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    let count = 0;
-    const currentDate = new Date(startDate);
-    while (currentDate <= endDate) {
-      const dayOfWeek = currentDate.getDay();
-      const dateStr = currentDate.toISOString().split('T')[0];
-      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-        count++;
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | { name?: string; value: unknown }
+    >
+  ) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name as string]: value
+    }));
+    if (errors[name as string]) {
+      setErrors(prev => ({
+        ...prev,
+        [name as string]: ''
+      }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    
+    if (!formData.employeeName.trim()) {
+      newErrors.employeeName = 'Le nom est requis';
+    }
+    
+    if (!formData.email.trim()) {
+      newErrors.email = 'L\'email est requis';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Email invalide';
+    }
+    
+    if (!formData.leaveType) {
+      newErrors.leaveType = 'Le type de congé est requis';
+    }
+    
+    if (!formData.startDate) {
+      newErrors.startDate = 'La date de début est requise';
+    }
+    
+    if (!formData.endDate) {
+      newErrors.endDate = 'La date de fin est requise';
+    }
+    
+    if (formData.startDate && formData.endDate) {
+      if (new Date(formData.endDate) < new Date(formData.startDate)) {
+        newErrors.endDate = 'La date de fin doit être après la date de début';
       }
-      currentDate.setDate(currentDate.getDate() + 1);
     }
-    return count;
+    
+    if (!formData.supervisor.trim()) {
+      newErrors.supervisor = 'Le superviseur est requis';
+    }
+    
+    return newErrors;
   };
 
-  const workingDays = calculateWorkingDays(formData.startDate, formData.endDate);
-  const selectedLeaveType = leaveTypes.find(lt => lt.id === formData.leaveTypeId);
-  const userBalance = userBalances.find(b => b.leaveTypeId === formData.leaveTypeId);
-
-  const canSubmit = () => {
-    if (!formData.leaveTypeId || !formData.startDate || !formData.endDate) return false;
-    if (selectedLeaveType?.requiresJustification && !formData.reason.trim()) return false;
-    if (userBalance && workingDays > userBalance.remaining && !selectedLeaveType?.isExceptional) return false;
-    return true;
+  const calculateDays = () => {
+    if (formData.startDate && formData.endDate) {
+      const start = new Date(formData.startDate);
+      const end = new Date(formData.endDate);
+      const diffTime = Math.abs(end.getTime() - start.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+      return diffDays;
+    }
+    return 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!canSubmit()) return;
-    const res = submitLeaveRequest({
-      leaveTypeId: formData.leaveTypeId,
-      startDate: formData.startDate,
-      endDate: formData.endDate,
-      reason: formData.reason || undefined
-    });
-    if (res.ok) {
-      setFormData({ leaveTypeId: '', startDate: '', endDate: '', reason: '' });
+    const newErrors = validateForm();
+    
+    if (Object.keys(newErrors).length === 0) {
+      const submitData = {
+        ...formData,
+        days: calculateDays(),
+        status: 'pending',
+        submittedAt: new Date().toISOString()
+      };
+      mutation.mutate(submitData);
+    } else {
+      setErrors(newErrors);
     }
   };
+
+  if (showSuccess) {
+    return (
+      <Box sx={{ minHeight: '100vh', bgcolor: 'success.light', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
+        <Fade in={showSuccess}>
+          <Card sx={{ maxWidth: 500, width: '100%', textAlign: 'center', p: 3 }}>
+            <CardContent>
+              <CheckCircleOutline sx={{ fontSize: 80, color: 'success.main', mb: 2 }} />
+              <Typography variant="h5" fontWeight="bold" color="text.primary" gutterBottom>
+                Demande envoyée avec succès!
+              </Typography>
+              <Typography color="text.secondary">
+                Votre demande de congé a été soumise et sera examinée par votre superviseur.
+              </Typography>
+            </CardContent>
+          </Card>
+        </Fade>
+      </Box>
+    );
+  }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Calendar className="mr-2 h-5 w-5" />
-            Nouvelle demande de congés
-          </CardTitle>
-          <CardDescription>
-            Remplissez le formulaire pour soumettre votre demande
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="leaveType">Type de congé *</Label>
-              <Select value={formData.leaveTypeId} onValueChange={(value) => setFormData({ ...formData, leaveTypeId: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un type de congé" />
-                </SelectTrigger>
-                <SelectContent>
-                  {leaveTypes.map(type => {
-                    const balance = userBalances.find(b => b.leaveTypeId === type.id);
-                    return (
-                      <SelectItem key={type.id} value={type.id}>
-                        <div className="flex items-center justify-between w-full">
-                          <span>{type.name}</span>
-                          {balance && (
-                            <Badge variant="outline" className="ml-2">
-                              {balance.remaining} jours
-                            </Badge>
-                          )}
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
+    <Box sx={{ minHeight: '100vh', bgcolor: 'grey.100', py: 6, px: 2 }}>
+      <Container maxWidth="lg">
+        <Paper elevation={3} sx={{ borderRadius: 2, overflow: 'hidden' }}>
+          <Box sx={{ bgcolor: 'primary.main', p: 4, color: 'white' }}>
+            <Typography variant="h4" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <CalendarToday />
+              Demande de Congé
+            </Typography>
+            <Typography variant="body1" sx={{ mt: 1, opacity: 0.9 }}>
+              Complétez le formulaire pour soumettre votre demande
+            </Typography>
+          </Box>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="startDate">Date de début *</Label>
-                <Input
-                  id="startDate"
+          <Box component="form" onSubmit={handleSubmit} sx={{ p: 4, display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {errors.submit && (
+              <Alert severity="error" icon={<ErrorOutline />}>
+                {errors.submit}
+              </Alert>
+            )}
+
+            <FormControl fullWidth error={!!errors.leaveType}>
+              <InputLabel>Type de congé *</InputLabel>
+              <Select
+                name="leaveType"
+                value={formData.leaveType}
+                onChange={(e) => handleChange(e as React.ChangeEvent<{ name?: string; value: string }>)}
+                disabled={mutation.isPending}
+              >
+                <MenuItem value="">Sélectionnez un type</MenuItem>
+                {leaveTypes.map(type => (
+                  <MenuItem key={type} value={type}>{type}</MenuItem>
+                ))}
+              </Select>
+              {errors.leaveType && (
+                <Typography color="error" variant="caption" sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <ErrorOutline fontSize="small" />
+                  {errors.leaveType}
+                </Typography>
+              )}
+            </FormControl>
+
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
+              <Box sx={{ flex: 1 }}>
+                <TextField
+                  fullWidth
+                  label="Date de début *"
+                  name="startDate"
                   type="date"
                   value={formData.startDate}
-                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                  min={new Date().toISOString().split('T')[0]}
+                  onChange={handleChange}
+                  disabled={mutation.isPending}
+                  error={!!errors.startDate}
+                  helperText={errors.startDate}
+                  InputProps={{
+                    startAdornment: <CalendarToday sx={{ mr: 1, color: 'action.active' }} />,
+                  }}
+                  InputLabelProps={{ shrink: true }}
+                  variant="outlined"
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="endDate">Date de fin *</Label>
-                <Input
-                  id="endDate"
+              </Box>
+              <Box sx={{ flex: 1 }}>
+                <TextField
+                  fullWidth
+                  label="Date de fin *"
+                  name="endDate"
                   type="date"
                   value={formData.endDate}
-                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                  min={formData.startDate || new Date().toISOString().split('T')[0]}
+                  onChange={handleChange}
+                  disabled={mutation.isPending}
+                  error={!!errors.endDate}
+                  helperText={errors.endDate}
+                  InputProps={{
+                    startAdornment: <CalendarToday sx={{ mr: 1, color: 'action.active' }} />,
+                  }}
+                  InputLabelProps={{ shrink: true }}
+                  variant="outlined"
                 />
-              </div>
-            </div>
+              </Box>
+            </Stack>
 
-            {workingDays > 0 && (
-              <div className="p-4 bg-blue-50 rounded-lg">
-                <div className="flex items-center space-x-2">
-                  <Clock className="h-5 w-5 text-blue-600" />
-                  <span className="font-medium text-blue-900">
-                    Durée calculée: {workingDays} jour(s) ouvré(s)
-                  </span>
-                </div>
-                {userBalance && !selectedLeaveType?.isExceptional && (
-                  <p className="text-sm text-blue-700 mt-1">
-                    Solde restant après cette demande: {userBalance.remaining - workingDays} jour(s)
-                  </p>
-                )}
-              </div>
+            {calculateDays() > 0 && (
+              <Paper variant="outlined" sx={{ p: 2, bgcolor: 'info.light' }}>
+                <Typography color="info.main" fontWeight="medium">
+                  Durée: {calculateDays()} jour{calculateDays() > 1 ? 's' : ''}
+                </Typography>
+              </Paper>
             )}
 
-            {userBalance && workingDays > userBalance.remaining && !selectedLeaveType?.isExceptional && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                <div className="flex items-center space-x-2">
-                  <AlertCircle className="h-5 w-5 text-red-600" />
-                  <span className="font-medium text-red-900">
-                    Solde insuffisant
-                  </span>
-                </div>
-                <p className="text-sm text-red-700 mt-1">
-                  Vous n'avez que {userBalance.remaining} jour(s) disponible(s) pour ce type de congé.
-                </p>
-              </div>
-            )}
+            <TextField
+              fullWidth
+              label="Motif / Commentaires"
+              name="reason"
+              value={formData.reason}
+              onChange={handleChange}
+              disabled={mutation.isPending}
+              multiline
+              rows={4}
+              InputProps={{
+                startAdornment: <Note sx={{ mr: 1, color: 'action.active' }} />,
+              }}
+              variant="outlined"
+            />
 
-            <div className="space-y-2">
-              <Label htmlFor="reason">
-                Motif {selectedLeaveType?.requiresJustification && '*'}
-              </Label>
-              <Textarea
-                id="reason"
-                placeholder={selectedLeaveType?.requiresJustification
-                  ? "Motif obligatoire pour ce type de congé"
-                  : "Motif optionnel (ex: vacances en famille)"
-                }
-                value={formData.reason}
-                onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                rows={3}
-              />
-            </div>
-
-            {selectedLeaveType && (
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-medium text-gray-900 mb-2">
-                  Informations sur {selectedLeaveType.name}
-                </h4>
-                <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• Justificatif: {selectedLeaveType.requiresJustification ? 'Obligatoire' : 'Non requis'}</li>
-                  <li>• Type: {selectedLeaveType.isExceptional ? 'Congé exceptionnel' : 'Congé standard'}</li>
-                  {selectedLeaveType.maxDays && (
-                    <li>• Durée maximale: {selectedLeaveType.maxDays} jours</li>
-                  )}
-                </ul>
-              </div>
-            )}
-
-            <div className="flex space-x-4">
+            <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
               <Button
                 type="submit"
-                disabled={!canSubmit()}
-                className="flex-1"
+                variant="contained"
+                color="primary"
+                disabled={mutation.isPending}
+                sx={{ flex: 1, py: 1.5 }}
+                startIcon={mutation.isPending ? <CircularProgress size={20} color="inherit" /> : null}
               >
-                Soumettre la demande
+                {mutation.isPending ? 'Envoi en cours...' : 'Soumettre la demande'}
               </Button>
               <Button
                 type="button"
-                variant="outline"
-                onClick={() => setFormData({ leaveTypeId: '', startDate: '', endDate: '', reason: '' })}
+                variant="outlined"
+                disabled={mutation.isPending}
+                onClick={() => {
+                  setFormData({
+                    employeeName: '',
+                    email: '',
+                    leaveType: '',
+                    startDate: '',
+                    endDate: '',
+                    reason: '',
+                    supervisor: ''
+                  });
+                  setErrors({});
+                }}
+                sx={{ py: 1.5 }}
               >
-                Annuler
+                Réinitialiser
               </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+            </Box>
+          </Box>
+        </Paper>
+      </Container>
+    </Box>
   );
 }
+
+export default LeaveRequestForm;
