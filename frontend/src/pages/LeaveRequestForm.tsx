@@ -112,17 +112,7 @@ function LeaveRequestForm() {
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    
-    if (!formData.employeeName.trim()) {
-      newErrors.employeeName = 'Le nom est requis';
-    }
-    
-    if (!formData.email.trim()) {
-      newErrors.email = 'L\'email est requis';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email invalide';
-    }
-    
+        
     if (!formData.leaveType) {
       newErrors.leaveType = 'Le type de congé est requis';
     }
@@ -139,10 +129,6 @@ function LeaveRequestForm() {
       if (new Date(formData.endDate) < new Date(formData.startDate)) {
         newErrors.endDate = 'La date de fin doit être après la date de début';
       }
-    }
-    
-    if (!formData.supervisor.trim()) {
-      newErrors.supervisor = 'Le superviseur est requis';
     }
     
     return newErrors;

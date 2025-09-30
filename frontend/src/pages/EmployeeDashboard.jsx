@@ -21,7 +21,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 const EmployeeDashboard = () => {
-    const Navigate = useNavigate();
+    const navigate = useNavigate();
     const { user } = useAuth();
     const [loading, setLoading] = useState(true);
     const [balances, setBalances] = useState([]);
@@ -115,7 +115,7 @@ const EmployeeDashboard = () => {
                                 ) : (
                                     <Alert severity="info">Aucune demande récente</Alert>
                                 )}
-                                <Button variant="contained" startIcon={<AddCircle />} sx={{ mt: 2 }} onClick={() => Navigate('/employee/new')}>
+                                <Button variant="contained" startIcon={<AddCircle />} sx={{ mt: 2 }} onClick={() => navigate('/employee/new')}>
                                     Nouvelle demande
                                 </Button>
                             </CardContent>
